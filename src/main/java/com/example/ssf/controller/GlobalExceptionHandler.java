@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
             "Username is already in use", "Username already exists",
             "Email is already in use", "Email already exists",
             "Password must not be blank", "Password is required",
-            "Password must be provided in raw form", "Password must be provided in plain text",
+            "Password must be provided in raw form", "Password must not be pre-encoded",
             "Password must be at least 8 characters long", "Password must meet length requirements",
             "User not found", "User not found"
     );
