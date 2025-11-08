@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -34,6 +38,8 @@ class UserServiceTest {
         testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("password123");
+
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encodedPassword");
     }
 
     @Test
@@ -69,14 +75,46 @@ class UserServiceTest {
     }
 
     @Test
-    void save_WhenValidUser_ReturnsSavedUser() {
+    void save_WhenValidUser_EncodesPasswordAndPersists() {
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         User result = userService.save(testUser);
 
         assertNotNull(result);
         assertEquals(testUser.getUsername(), result.getUsername());
+        assertEquals("encodedPassword", testUser.getPassword());
+        verify(passwordEncoder).encode("password123");
         verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void save_WhenPasswordAlreadyEncoded_SkipsEncoding() {
+        String encoded = "$2a$10$abcdefghijklmnopqrstuv";
+        testUser.setPassword(encoded);
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        userService.save(testUser);
+
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void save_WhenPasswordBlank_ThrowsException() {
+        testUser.setPassword(" ");
+
+        assertThrows(IllegalArgumentException.class, () -> userService.save(testUser));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void save_WhenPasswordTooShort_ThrowsException() {
+        testUser.setPassword("short");
+
+        assertThrows(IllegalArgumentException.class, () -> userService.save(testUser));
+
+        verify(userRepository, never()).save(any());
     }
 
     @Test
