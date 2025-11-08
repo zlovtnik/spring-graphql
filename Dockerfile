@@ -16,6 +16,9 @@ WORKDIR /app
 
 COPY --from=build /app/build/libs/ssf-0.0.1-SNAPSHOT.jar app.jar
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Create non-root user and group
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup -h /app -s /sbin/nologin
 
@@ -28,4 +31,4 @@ USER appuser
 ENV JAVA_OPTS=""
 EXPOSE 8443
 
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS:+\"$JAVA_OPTS\"} -jar app.jar"]

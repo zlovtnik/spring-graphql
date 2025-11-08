@@ -33,7 +33,12 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 @Import({TestDatabaseConfig.class, HealthConfigTest.TestConfig.class})
 @TestPropertySource(properties = {
-    "spring.datasource.url=jdbc:sqlite:./data/test.db",
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
     "minio.url=" + HealthConfigTest.MINIO_URL,
     "minio.access-key=" + HealthConfigTest.MINIO_ACCESS_KEY,
     "minio.secret-key=" + HealthConfigTest.MINIO_SECRET_KEY
