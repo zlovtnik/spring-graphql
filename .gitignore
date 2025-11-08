@@ -14,9 +14,10 @@ Thumbs.db
 .classpath
 .project
 .settings/
-
+build
 # Build and dependency outputs
 /build/
+
 /.gradle/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
