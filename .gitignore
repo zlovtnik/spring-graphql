@@ -23,6 +23,8 @@ build
 !gradle/wrapper/gradle-wrapper.properties
 /bin/
 /out/
+/.clj-kondo/
+/.lsp/
 target/
 *.class
 

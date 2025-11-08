@@ -63,7 +63,7 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/" + userId)
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
+                .andExpect(status().isNotFound())
                 .andExpect(content().string(""));
     }
 
@@ -80,12 +80,12 @@ class UserControllerTest {
         savedUser.setEmail(user.getEmail());
         savedUser.setPassword(user.getPassword());
 
-        when(userService.save(any(User.class))).thenReturn(savedUser);
+        when(userService.createUser(any(User.class))).thenReturn(savedUser);
 
         mockMvc.perform(post("/api/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(user)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.username").value("newuser"))
