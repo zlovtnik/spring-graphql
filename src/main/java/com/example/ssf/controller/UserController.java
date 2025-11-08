@@ -32,8 +32,12 @@ public class UserController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
-        User user = new User(request.username(), request.email(), request.password());
-        User savedUser = userService.save(user);
+        User user = new User();
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setPassword(request.password());
+
+        User savedUser = userService.createUser(user);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(savedUser.getId())
@@ -44,6 +48,6 @@ public class UserController {
     public record CreateUserRequest(
             @NotBlank String username,
             @NotBlank @Email String email,
-            @NotBlank @Size(min = 8) String password
+            @NotBlank @Size(min = 8, max = 100) String password
     ) {}
 }

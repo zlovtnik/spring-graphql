@@ -29,9 +29,9 @@ public class User {
     private String email;
 
     // Custom constructor for convenient creation
-    public User(String username, String email, String password) {
+    public User(String username, String password, String email) {
         this.username = username;
-        this.email = email;
         this.password = password;
+        this.email = email;
     }
 }

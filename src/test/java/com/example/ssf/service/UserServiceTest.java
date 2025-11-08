@@ -75,46 +75,172 @@ class UserServiceTest {
     }
 
     @Test
-    void save_WhenValidUser_EncodesPasswordAndPersists() {
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+    void createUser_WhenValidUser_EncodesPasswordAndPersists() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(testUser)).thenReturn(testUser);
 
-        User result = userService.save(testUser);
+        User result = userService.createUser(testUser);
 
         assertNotNull(result);
-        assertEquals(testUser.getUsername(), result.getUsername());
-        assertEquals("encodedPassword", testUser.getPassword());
+        assertEquals("encodedPassword", result.getPassword());
         verify(passwordEncoder).encode("password123");
         verify(userRepository).save(testUser);
     }
 
     @Test
-    void save_WhenPasswordAlreadyEncoded_SkipsEncoding() {
-        String encoded = "$2a$10$abcdefghijklmnopqrstuv";
-        testUser.setPassword(encoded);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+    void createUser_WhenPasswordLooksEncoded_ThrowsException() {
+        testUser.setPassword("$2a$10$abcdefghijklmnopqrstuv");
 
-        userService.save(testUser);
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(testUser));
 
-        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_WhenUsernameAlreadyExists_ThrowsException() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(new User()));
+
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(testUser));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_WhenEmailAlreadyExists_ThrowsException() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(new User()));
+
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(testUser));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_WhenEmailInvalid_ThrowsException() {
+        testUser.setEmail("invalid");
+
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(testUser));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void createUser_WhenPasswordTooShort_ThrowsException() {
+        testUser.setPassword("short");
+
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(testUser));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUser_WhenPasswordChanged_EncodesNewPassword() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
+        when(userRepository.save(testUser)).thenReturn(testUser);
+
+        User result = userService.updateUser(userId, null, null, Optional.of("newPassword"));
+
+        assertEquals("newEncodedPassword", result.getPassword());
+        verify(passwordEncoder).encode("newPassword");
         verify(userRepository).save(testUser);
     }
 
     @Test
-    void save_WhenPasswordBlank_ThrowsException() {
-        testUser.setPassword(" ");
+    void updateUser_WhenUsernameConflicts_ThrowsException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        User conflicting = new User();
+        conflicting.setId(UUID.randomUUID());
+        when(userRepository.findByUsername("otherUser")).thenReturn(Optional.of(conflicting));
 
-        assertThrows(IllegalArgumentException.class, () -> userService.save(testUser));
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, "otherUser", null, Optional.empty()));
 
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void save_WhenPasswordTooShort_ThrowsException() {
-        testUser.setPassword("short");
+    void updateUser_WhenEmailInvalid_ThrowsException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
-        assertThrows(IllegalArgumentException.class, () -> userService.save(testUser));
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "invalid-email", Optional.empty()));
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUser_WhenEmailConflicts_ThrowsException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        User conflicting = new User();
+        conflicting.setId(UUID.randomUUID());
+        when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.of(conflicting));
+
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "new@example.com", Optional.empty()));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUser_WhenPasswordChangedFalse_DoesNotInvokePasswordEncoder() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(testUser)).thenReturn(testUser);
+        String originalPassword = testUser.getPassword();
+
+        User result = userService.updateUser(userId, null, null, Optional.empty());
+
+        assertEquals(originalPassword, result.getPassword());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository).save(testUser);
+        assertSame(testUser, result);
+    }
+
+    @Test
+    void updateUser_WhenUserNotFound_ThrowsIllegalArgumentException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUser(userId, null, null, Optional.empty()));
+
+        assertEquals("USER_NOT_FOUND", exception.getMessage());
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void updateUser_WhenAllInputsNull_PreservesExistingValues() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(testUser)).thenReturn(testUser);
+
+        User result = userService.updateUser(userId, null, null, Optional.empty());
+
+        assertEquals("testuser", result.getUsername());
+        assertEquals("test@example.com", result.getEmail());
+        assertEquals("password123", result.getPassword());
+
+        verify(userRepository).findById(userId);
+        verify(userRepository).save(testUser);
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void updateUser_WhenPasswordEmpty_ThrowsIllegalArgumentException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUser(userId, null, null, Optional.of("")));
+
+        assertEquals("PASSWORD_BLANK", exception.getMessage());
+        verify(userRepository).findById(userId);
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test

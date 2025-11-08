@@ -14,15 +14,16 @@ Thumbs.db
 .classpath
 .project
 .settings/
-build
 # Build and dependency outputs
 /build/
-
+/.bloop/
 /.gradle/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.properties
 /bin/
 /out/
+/.clj-kondo/
+/.lsp/
 target/
 *.class
 
@@ -46,3 +47,5 @@ temp/
 
 # Local data artifacts
 data/*.db
+
+.fake

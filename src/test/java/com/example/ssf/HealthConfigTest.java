@@ -39,9 +39,9 @@ import static org.mockito.Mockito.*;
     "minio.secret-key=" + HealthConfigTest.MINIO_SECRET_KEY
 })
 class HealthConfigTest {
-    private static final String MINIO_URL = "http://localhost:9000";
-    private static final String MINIO_ACCESS_KEY = "test-access-key";
-    private static final String MINIO_SECRET_KEY = "test-secret-key";
+    static final String MINIO_URL = "http://localhost:9000";
+    static final String MINIO_ACCESS_KEY = "test-access-key";
+    static final String MINIO_SECRET_KEY = "test-secret-key";
 
     @Configuration
     static class TestConfig {
