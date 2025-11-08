@@ -141,7 +141,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
         when(userRepository.save(testUser)).thenReturn(testUser);
 
-        User result = userService.updateUser(userId, null, null, true, "newPassword");
+        User result = userService.updateUser(userId, null, null, Optional.of("newPassword"));
 
         assertEquals("newEncodedPassword", result.getPassword());
         verify(passwordEncoder).encode("newPassword");
@@ -156,7 +156,7 @@ class UserServiceTest {
         conflicting.setId(UUID.randomUUID());
         when(userRepository.findByUsername("otherUser")).thenReturn(Optional.of(conflicting));
 
-        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, "otherUser", null, false, null));
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, "otherUser", null, Optional.empty()));
 
         verify(userRepository, never()).save(any());
     }
@@ -166,7 +166,7 @@ class UserServiceTest {
         UUID userId = testUser.getId();
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
-        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "invalid-email", false, null));
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "invalid-email", Optional.empty()));
 
         verify(userRepository, never()).save(any());
     }
@@ -179,9 +179,58 @@ class UserServiceTest {
         conflicting.setId(UUID.randomUUID());
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.of(conflicting));
 
-        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "new@example.com", false, null));
+        assertThrows(IllegalArgumentException.class, () -> userService.updateUser(userId, null, "new@example.com", Optional.empty()));
 
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUser_WhenPasswordChangedFalse_DoesNotInvokePasswordEncoder() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(testUser)).thenReturn(testUser);
+        String originalPassword = testUser.getPassword();
+
+        User result = userService.updateUser(userId, null, null, Optional.empty());
+
+        assertEquals(originalPassword, result.getPassword());
+        verify(passwordEncoder, never()).encode(anyString());
+        verify(userRepository).save(testUser);
+        assertSame(testUser, result);
+    }
+
+    @Test
+    void updateUser_WhenUserNotFound_ThrowsNotFoundException() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUser(userId, null, null, Optional.empty()));
+
+        assertEquals("User not found", exception.getMessage());
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(anyString());
+    }
+
+    @Test
+    void updateUser_NullInputs_HandleValidationOrThrowIllegalArgument() {
+        UUID userId = testUser.getId();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(testUser)).thenReturn(testUser);
+
+        User result = userService.updateUser(userId, null, null, Optional.empty());
+
+        assertEquals("testuser", result.getUsername());
+        assertEquals("test@example.com", result.getEmail());
+        assertEquals("password123", result.getPassword());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUser(userId, null, null, Optional.of("")));
+
+        assertEquals("Password must not be blank", exception.getMessage());
+        verify(userRepository, times(2)).findById(userId);
+        verify(userRepository).save(testUser);
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
