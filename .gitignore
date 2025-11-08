@@ -1,0 +1,47 @@
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE and tool directories
+.idea/
+.metals/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Build and dependency outputs
+/build/
+/.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+/bin/
+/out/
+target/
+*.class
+
+# Logs and reports
+*.log
+logs/
+/test-results/
+/jacocoHtml/
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+.tmp/
+tmp/
+temp/
+
+# Environment files
+.env
+.env.*
+
+# Local data artifacts
+data/*.db
