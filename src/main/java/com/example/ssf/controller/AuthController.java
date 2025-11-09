@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -52,10 +53,13 @@ public class AuthController {
 
             String jwt = jwtTokenProvider.generateToken(authentication);
             auditService.logLoginAttempt(username, true, ipAddress, userAgent, null);
-            // Log session start
-            userService.findByUsername(username).ifPresent(user ->
-                auditService.logSessionStart(user.getId().toString(), jwt, ipAddress, userAgent)
-            );
+
+            var user = userService.findByUsername(username).orElseThrow(() -> {
+                LOGGER.error("Authenticated user missing in datastore for session start. username={}, ipAddress={}, userAgent={}",
+                        username, ipAddress, userAgent);
+                return new AuthenticationCredentialsNotFoundException("Authenticated user record not found for session start");
+            });
+            auditService.logSessionStart(user.getId().toString(), jwt, ipAddress, userAgent);
             return ResponseEntity.ok(new AuthResponse(jwt));
         } catch (AuthenticationException e) {
             auditService.logLoginAttempt(username, false, ipAddress, userAgent, e.getMessage());
