@@ -1,9 +1,9 @@
 package com.example.ssf.graphql;
 
 import com.example.ssf.dto.AuthResponse;
+import com.example.ssf.security.AuthenticatedUser;
 import com.example.ssf.security.JwtTokenProvider;
 import com.example.ssf.service.AuditService;
-import com.example.ssf.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -15,8 +15,16 @@ import org.springframework.util.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import graphql.GraphqlErrorException;
+
+import java.util.Map;
+
 @Controller
 public class AuthMutation {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthMutation.class);
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -26,9 +34,6 @@ public class AuthMutation {
 
     @Autowired
     private AuditService auditService;
-
-    @Autowired
-    private UserService userService;
 
     @MutationMapping
     public AuthResponse login(@Argument String username, @Argument String password, HttpServletRequest request) {
@@ -46,14 +51,18 @@ public class AuthMutation {
             );
             String token = jwtTokenProvider.generateToken(authentication);
             auditService.logLoginAttempt(username, true, ipAddress, userAgent, null);
-            // Log session start
-            userService.findByUsername(username).ifPresent(user ->
-                auditService.logSessionStart(user.getId().toString(), token, ipAddress, userAgent)
-            );
+
+            AuthenticatedUser principal = extractAuthenticatedUser(authentication, username, ipAddress, userAgent);
+            auditService.logSessionStart(principal.getId().toString(), token, ipAddress, userAgent);
+
             return new AuthResponse(token);
         } catch (org.springframework.security.core.AuthenticationException e) {
             auditService.logLoginAttempt(username, false, ipAddress, userAgent, e.getMessage());
-            throw new RuntimeException("Authentication failed", e);
+            throw GraphqlErrorException.newErrorException()
+                    .message("Authentication failed")
+                    .extensions(Map.of("reason", e.getMessage() == null ? "UNKNOWN" : e.getMessage()))
+                    .cause(e)
+                    .build();
         }
     }
 
@@ -74,5 +83,22 @@ public class AuthMutation {
             return xRealIp;
         }
         return request.getRemoteAddr();
+    }
+
+    private AuthenticatedUser extractAuthenticatedUser(Authentication authentication, String username, String ipAddress, String userAgent) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            LOGGER.error("Missing authentication principal for session start. username={}, ipAddress={}, userAgent={}",
+                    username, ipAddress, userAgent);
+            throw new IllegalStateException("Missing authentication principal");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof AuthenticatedUser authenticatedUser) {
+            return authenticatedUser;
+        }
+
+        LOGGER.error("Unexpected authentication principal type: {}. username={}, ipAddress={}, userAgent={}",
+                principal.getClass().getName(), username, ipAddress, userAgent);
+        throw new IllegalStateException("Unexpected authentication principal type: " + principal.getClass().getName());
     }
 }

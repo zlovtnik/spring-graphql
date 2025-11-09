@@ -9,9 +9,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -29,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, TestDatabaseConfig.class})
+@Import({TestDatabaseConfig.class, UserControllerTest.NoOpSecurityConfig.class})
 @ComponentScan(excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = com.example.ssf.config.SecurityConfig.class))
 @TestPropertySource(properties = {
     "spring.jpa.hibernate.ddl-auto=none"
@@ -44,6 +51,25 @@ class UserControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Configuration
+    @EnableWebSecurity
+    static class NoOpSecurityConfig {
+
+        @Bean
+        PasswordEncoder passwordEncoder() {
+            return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        AuthenticationManager authenticationManager(AuthenticationManagerBuilder builder, PasswordEncoder encoder) throws Exception {
+            builder.inMemoryAuthentication()
+                    .withUser("test-user")
+                    .password(encoder.encode("test-password"))
+                    .roles("USER");
+            return builder.build();
+        }
+    }
 
     @Test
     void getUserById_WhenUserExists_ReturnsUser() throws Exception {

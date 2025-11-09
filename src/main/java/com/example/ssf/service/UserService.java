@@ -1,5 +1,11 @@
 package com.example.ssf.service;
 
+import com.example.ssf.dynamic.DynamicCrudColumnValue;
+import com.example.ssf.dynamic.DynamicCrudFilter;
+import com.example.ssf.dynamic.DynamicCrudGateway;
+import com.example.ssf.dynamic.DynamicCrudOperation;
+import com.example.ssf.dynamic.DynamicCrudRequest;
+import com.example.ssf.dynamic.DynamicCrudResponse;
 import com.example.ssf.entity.User;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -13,6 +19,8 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -23,6 +31,7 @@ public class UserService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final DynamicCrudGateway dynamicCrudGateway;
 
     private static final RowMapper<User> USER_ROW_MAPPER = new RowMapper<User>() {
         @Override
@@ -35,9 +44,10 @@ public class UserService {
         }
     };
 
-    public UserService(DataSource dataSource, PasswordEncoder passwordEncoder) {
+    public UserService(DataSource dataSource, PasswordEncoder passwordEncoder, DynamicCrudGateway dynamicCrudGateway) {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
         this.passwordEncoder = passwordEncoder;
+        this.dynamicCrudGateway = dynamicCrudGateway;
     }
 
     public Optional<User> findByUsername(String username) {
@@ -81,18 +91,30 @@ public class UserService {
         ensureEmailAvailable(user.getEmail(), null);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        return jdbcTemplate.execute((Connection con) -> {
-            try (CallableStatement cs = con.prepareCall("{ call user_pkg.create_user(?, ?, ?, ?) }")) {
-                cs.setString(1, user.getUsername());
-                cs.setString(2, user.getPassword()); // Already hashed
-                cs.setString(3, user.getEmail());
-                cs.registerOutParameter(4, java.sql.Types.VARCHAR);
-                cs.execute();
-                String userId = cs.getString(4);
-                user.setId(UUID.fromString(userId));
-                return user;
-            }
-        });
+        UUID userId = UUID.randomUUID();
+        user.setId(userId);
+
+        List<DynamicCrudColumnValue> columns = List.of(
+                new DynamicCrudColumnValue("id", userId.toString()),
+                new DynamicCrudColumnValue("username", user.getUsername()),
+                new DynamicCrudColumnValue("password", user.getPassword()),
+                new DynamicCrudColumnValue("email", user.getEmail())
+        );
+
+        DynamicCrudRequest request = new DynamicCrudRequest(
+                "users",
+                DynamicCrudOperation.CREATE,
+                columns,
+                null,
+                null,
+                null
+        );
+
+        DynamicCrudResponse response = dynamicCrudGateway.execute(request);
+        response.optionalGeneratedId()
+                .map(UUID::fromString)
+                .ifPresent(user::setId);
+        return user;
     }
 
     @Transactional
@@ -116,33 +138,41 @@ public class UserService {
             existing.setPassword(passwordEncoder.encode(password));
         });
 
-        // Call update procedure
-        jdbcTemplate.execute((Connection con) -> {
-            try (CallableStatement cs = con.prepareCall("{ call user_pkg.update_user(?, ?, ?, ?) }")) {
-                cs.setString(1, userId.toString());
-                cs.setString(2, existing.getUsername());
-                cs.setString(3, existing.getEmail());
-                cs.setString(4, existing.getPassword());
-                cs.execute();
-                return null;
-            }
-        });
+        List<DynamicCrudColumnValue> columns = new ArrayList<>();
+        columns.add(new DynamicCrudColumnValue("username", existing.getUsername()));
+        columns.add(new DynamicCrudColumnValue("email", existing.getEmail()));
+        columns.add(new DynamicCrudColumnValue("password", existing.getPassword()));
+
+        List<DynamicCrudFilter> filters = List.of(new DynamicCrudFilter("id", "=", userId.toString()));
+
+        DynamicCrudRequest request = new DynamicCrudRequest(
+                "users",
+                DynamicCrudOperation.UPDATE,
+                columns,
+                filters,
+                null,
+                null
+        );
+
+        dynamicCrudGateway.execute(request);
 
         return existing;
     }
 
     @Transactional
     public boolean deleteUser(UUID userId) {
-        // Call delete procedure
-        return jdbcTemplate.execute((Connection con) -> {
-            try (CallableStatement cs = con.prepareCall("{ ? = call user_pkg.delete_user(?) }")) {
-                cs.registerOutParameter(1, java.sql.Types.INTEGER);
-                cs.setString(2, userId.toString());
-                cs.execute();
-                int deleted = cs.getInt(1);
-                return deleted > 0;
-            }
-        });
+        List<DynamicCrudFilter> filters = List.of(new DynamicCrudFilter("id", "=", userId.toString()));
+        DynamicCrudRequest request = new DynamicCrudRequest(
+                "users",
+                DynamicCrudOperation.DELETE,
+                null,
+                filters,
+                null,
+                null
+        );
+
+        DynamicCrudResponse response = dynamicCrudGateway.execute(request);
+        return response.affectedRows() > 0;
     }
 
     public Optional<User> findById(UUID id) {

@@ -110,7 +110,7 @@ export ORACLE_DB=FREEPDB1
 export ORACLE_USER=ssfuser
 export ORACLE_PASSWORD=ssfuser
 
-export JWT_SECRET="change-me-to-a-65-char-super-secret"
+export JWT_SECRET="change-me-to-a-32-plus-character-super-secret"
 
 export MINIO_ACCESS_KEY=minioadmin
 export MINIO_SECRET_KEY=minioadmin
@@ -120,7 +120,7 @@ export MINIO_URL=http://localhost:9000
 export KEYSTORE_PASSWORD=changeit
 ```
 
-> 🔐 **Remember:** `JWT_SECRET` must be at least 32 characters with ≥10 distinct characters. The application enforces this at startup.
+> 🔐 **Remember:** `JWT_SECRET` must be at least 32 characters with ≥10 distinct characters (longer secrets improve entropy). The application enforces this at startup.
 
 ### 3. Launch the Application
 
@@ -229,7 +229,7 @@ query {
 | --- | --- |
 | **`IllegalStateException: JWT secret must be provided`** | Set `JWT_SECRET` with ≥32 characters before starting the app |
 | **`ORA-01017` authentication errors** | Verify `ORACLE_USER`/`ORACLE_PASSWORD`; if running locally ensure Oracle XE container is healthy |
-| **GraphiQL reports `Authentication required`** | Supply a valid JWT token in the `Authorization` header or disable enforcement temporarily in `SecurityConfig` (dev only) |
+| **GraphiQL reports `Authentication required`** | Supply a valid JWT token in the `Authorization` header. As a last resort for local development only, you may temporarily disable enforcement in `SecurityConfig`; never commit, push, or enable this bypass outside your machine. Prefer safer alternatives such as generating a valid JWT, using a temporary environment-only feature flag, or mocking auth locally, and audit commits plus CI/CD configs before merge/deploy. |
 | **MinIO health check is DOWN** | Confirm MinIO container is reachable and credentials match `minio.*` properties |
 
 ## Contributing
