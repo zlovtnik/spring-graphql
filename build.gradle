@@ -29,6 +29,7 @@ dependencies {
 	
 	// Oracle Database Driver
 	implementation 'com.oracle.database.jdbc:ojdbc11:23.26.0.0.0'
+	testImplementation 'com.oracle.database.jdbc:ojdbc11:23.26.0.0.0'
 	
 	// JWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
@@ -48,6 +49,7 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.testcontainers:testcontainers:1.19.7'
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.7'
+	testImplementation 'com.h2database:h2:2.2.224'
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 	testImplementation 'org.mockito:mockito-core:5.11.0'
 	testImplementation 'io.gatling:gatling-app:3.10.5'

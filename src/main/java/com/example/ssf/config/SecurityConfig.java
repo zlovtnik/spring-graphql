@@ -78,7 +78,7 @@ public class SecurityConfig {
                         // Public endpoints for authentication
                         .requestMatchers("/api/auth/**").permitAll()
                         // GraphQL IDE is public (authentication enforced by GraphQLAuthorizationInstrumentation)
-                        .requestMatchers("/graphiql").permitAll()
+                        .requestMatchers("/graphiql/**").permitAll()
                         // GraphQL endpoint - authentication enforced by GraphQLAuthorizationInstrumentation
                         .requestMatchers("/graphql").permitAll()
                         // Health and metrics

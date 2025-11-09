@@ -10,8 +10,11 @@ done
 
 # Create application user and tablespace
 $ORACLE_HOME/bin/sqlplus -s / as sysdba <<EOF
+-- Switch to PDB
+ALTER SESSION SET CONTAINER = FREEPDB1;
+
 -- Create tablespace
-CREATE TABLESPACE ssfspace DATAFILE '/opt/oracle/oradata/ssfdata.dbf' SIZE 100M AUTOEXTEND ON NEXT 10M;
+CREATE TABLESPACE ssfspace DATAFILE '/opt/oracle/oradata/FREE/FREEPDB1/ssfdata.dbf' SIZE 100M AUTOEXTEND ON NEXT 10M;
 
 -- Create user
 CREATE USER ssfuser IDENTIFIED BY ${DB_USER_PASSWORD:?DB_USER_PASSWORD environment variable must be set} DEFAULT TABLESPACE ssfspace;

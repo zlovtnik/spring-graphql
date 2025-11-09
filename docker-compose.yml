@@ -8,16 +8,18 @@ services:
     environment:
       ORACLE_PWD: ${ORACLE_ADMIN_PASSWORD:-AdminPassword123}
       ORACLE_CHARACTERSET: AL32UTF8
+      DB_USER_PASSWORD: ${ORACLE_PASSWORD:-ssfuser}
     ports:
       - "1521:1521"
       - "5500:5500"
     volumes:
       - oracle_data:/opt/oracle/oradata
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./healthcheck.sh:/opt/oracle/healthcheck.sh
     networks:
       - ssf-network
     healthcheck:
-      test: ["CMD", "healthcheck.sh"]
+      test: ["CMD", "/opt/oracle/healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -59,7 +61,7 @@ services:
     environment:
       ORACLE_HOST: oracle
       ORACLE_PORT: 1521
-      ORACLE_DB: FREE
+      ORACLE_DB: FREEPDB1
       ORACLE_USER: ${ORACLE_USER:-ssfuser}
       ORACLE_PASSWORD: ${ORACLE_PASSWORD:-ssfuser}
       ORACLE_ADMIN_PASSWORD: ${ORACLE_ADMIN_PASSWORD:-AdminPassword123}
