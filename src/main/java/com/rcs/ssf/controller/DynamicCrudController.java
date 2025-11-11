@@ -1,5 +1,6 @@
 package com.rcs.ssf.controller;
 
+import jakarta.validation.Valid;
 import com.rcs.ssf.dto.DynamicCrudRequest;
 import com.rcs.ssf.dto.DynamicCrudResponseDto;
 import com.rcs.ssf.service.DynamicCrudService;
@@ -19,14 +20,14 @@ public class DynamicCrudController {
     }
 
     @PostMapping("/execute")
-    public ResponseEntity<?> executeOperation(@RequestBody DynamicCrudRequest request) {
-        if ("SELECT".equals(request.getOperation())) {
+    public ResponseEntity<?> executeOperation(@Valid @RequestBody DynamicCrudRequest request) {
+        if (request.getOperation() == DynamicCrudRequest.Operation.SELECT) {
             DynamicCrudResponseDto response = dynamicCrudService.executeSelect(request);
             return ResponseEntity.ok(response);
         } else {
             // Handle mutations
-            dynamicCrudService.executeMutation(request);
-            return ResponseEntity.ok().build();
+            DynamicCrudResponseDto mutationResponse = dynamicCrudService.executeMutation(request);
+            return ResponseEntity.ok(mutationResponse);
         }
     }
 

@@ -102,6 +102,23 @@
     </div>
   </div>
 
+  <!-- Shared CRUD Form Template -->
+  <ng-template #crudForm>
+    <form nz-form nzLayout="vertical">
+      <nz-form-item *ngFor="let column of columns">
+        <nz-form-label [nzRequired]="!column.nullable">{{ column.name | titlecase }}</nz-form-label>
+        <nz-form-control>
+          <input
+            nz-input
+            [type]="getInputType(column.type)"
+            [(ngModel)]="formData[column.name]"
+            [name]="column.name"
+            [required]="!column.nullable" />
+        </nz-form-control>
+      </nz-form-item>
+    </form>
+  </ng-template>
+
   <!-- Create Modal -->
   <nz-modal
     [(nzVisible)]="isCreateModalVisible"
@@ -110,19 +127,7 @@
     (nzOnOk)="handleCreate()"
     [nzOkLoading]="loading">
     <ng-container *nzModalContent>
-      <form nz-form nzLayout="vertical">
-        <nz-form-item *ngFor="let column of columns">
-          <nz-form-label [nzRequired]="!column.nullable">{{ column.name | titlecase }}</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              [type]="getInputType(column.type)"
-              [(ngModel)]="formData[column.name]"
-              [name]="column.name"
-              [required]="!column.nullable" />
-          </nz-form-control>
-        </nz-form-item>
-      </form>
+      <ng-container *ngTemplateOutlet="crudForm"></ng-container>
     </ng-container>
   </nz-modal>
 
@@ -134,19 +139,7 @@
     (nzOnOk)="handleUpdate()"
     [nzOkLoading]="loading">
     <ng-container *nzModalContent>
-      <form nz-form nzLayout="vertical">
-        <nz-form-item *ngFor="let column of columns">
-          <nz-form-label [nzRequired]="!column.nullable">{{ column.name | titlecase }}</nz-form-label>
-          <nz-form-control>
-            <input
-              nz-input
-              [type]="getInputType(column.type)"
-              [(ngModel)]="formData[column.name]"
-              [name]="column.name"
-              [required]="!column.nullable" />
-          </nz-form-control>
-        </nz-form-item>
-      </form>
+      <ng-container *ngTemplateOutlet="crudForm"></ng-container>
     </ng-container>
   </nz-modal>
 </div>

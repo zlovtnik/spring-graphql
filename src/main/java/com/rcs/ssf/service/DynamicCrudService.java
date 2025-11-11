@@ -37,7 +37,7 @@ public class DynamicCrudService {
             sql.append(" WHERE ");
             List<String> conditions = new ArrayList<>();
             for (DynamicCrudRequest.Filter filter : request.getFilters()) {
-                conditions.add(filter.getColumn() + " " + filter.getOperator() + " ?");
+                conditions.add(filter.getColumn() + " " + filter.getOperator().getSymbol() + " ?");
                 params.add(filter.getValue());
             }
             sql.append(String.join(" AND ", conditions));
@@ -47,7 +47,7 @@ public class DynamicCrudService {
         if (request.getOrderBy() != null) {
             sql.append(" ORDER BY ").append(request.getOrderBy());
             if (request.getOrderDirection() != null) {
-                sql.append(" ").append(request.getOrderDirection());
+                sql.append(" ").append(request.getOrderDirection().name());
             }
         }
 
@@ -87,7 +87,7 @@ public class DynamicCrudService {
         return new DynamicCrudResponseDto(rows, totalCount != null ? totalCount : 0, columns);
     }
 
-    public void executeMutation(DynamicCrudRequest request) {
+    public DynamicCrudResponseDto executeMutation(DynamicCrudRequest request) {
         validateTable(request.getTableName());
 
         List<DynamicCrudColumnValue> columns = request.getColumns() != null ?
@@ -97,19 +97,27 @@ public class DynamicCrudService {
 
         List<DynamicCrudFilter> filters = request.getFilters() != null ?
             request.getFilters().stream()
-                .map(f -> new DynamicCrudFilter(f.getColumn(), f.getOperator(), f.getValue()))
+                .map(f -> new DynamicCrudFilter(f.getColumn(), f.getOperator().getSymbol(), f.getValue()))
                 .toList() : List.of();
+
+        DynamicCrudOperation op = switch (request.getOperation()) {
+            case INSERT -> DynamicCrudOperation.CREATE;
+            case UPDATE -> DynamicCrudOperation.UPDATE;
+            case DELETE -> DynamicCrudOperation.DELETE;
+            default -> throw new IllegalArgumentException("Unsupported operation: " + request.getOperation());
+        };
 
         com.rcs.ssf.dynamic.DynamicCrudRequest crudRequest = new com.rcs.ssf.dynamic.DynamicCrudRequest(
             request.getTableName(),
-            DynamicCrudOperation.valueOf(request.getOperation()),
+            op,
             columns,
             filters,
             null, // auditContext
             null  // bulkRows
         );
 
-        dynamicCrudGateway.execute(crudRequest);
+        DynamicCrudResponse response = dynamicCrudGateway.execute(crudRequest);
+        return new DynamicCrudResponseDto(List.of(), response.affectedRows(), List.of()); // No rows for mutations, but affected count
     }
 
     public String[] getAvailableTables() {

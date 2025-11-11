@@ -232,17 +232,42 @@
 }
 
 @media (max-width: 768px) {
+  .main-container {
+    padding: 16px;
+  }
+
   .dashboard-header {
     padding: 16px;
 
     .header-content {
       flex-direction: column;
       align-items: flex-start;
+      gap: 16px;
     }
 
-    .logout-btn {
+    .user-info {
+      .user-details {
+        h2 {
+          font-size: 20px;
+        }
+      }
+    }
+
+    .logout-btn, .install-btn {
       width: 100%;
       justify-content: center;
+    }
+  }
+
+  .stat-card {
+    .stat-content {
+      h3 {
+        font-size: 10px;
+      }
+    }
+
+    .stat-icon {
+      font-size: 24px;
     }
   }
 
@@ -251,15 +276,74 @@
 
     button {
       width: 100%;
+      justify-content: center;
     }
   }
 
   .theme-selector-main {
     flex-direction: column;
     align-items: flex-start;
+    gap: 16px;
 
     .theme-buttons-main {
       width: 100%;
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .theme-btn-main {
+        flex: 1;
+        min-width: 80px;
+      }
+    }
+  }
+
+  .chart-placeholder {
+    .chart-data {
+      .chart-bar {
+        width: 30px;
+        margin: 0 2px;
+      }
+    }
+
+    .chart-labels {
+      span {
+        font-size: 10px;
+      }
+    }
+  }
+
+  .audit-overview {
+    .audit-stat {
+      h4 {
+        font-size: 12px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    .user-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+
+      .user-details {
+        h2 {
+          font-size: 18px;
+        }
+
+        p {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+
+  .quick-actions {
+    button {
+      font-size: 12px;
+      padding: 8px 12px;
     }
   }
 }

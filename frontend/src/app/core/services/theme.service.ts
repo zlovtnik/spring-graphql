@@ -2,7 +2,7 @@ import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-export type ThemeType = 'blue' | 'purple' | 'emerald' | 'amber';
+export type ThemeType = 'blue' | 'purple' | 'emerald' | 'amber' | 'system';
 
 @Injectable({
   providedIn: 'root'
@@ -11,10 +11,12 @@ export class ThemeService {
   private readonly THEME_STORAGE_KEY = 'app-theme';
   private currentTheme$ = new BehaviorSubject<ThemeType>(this.getStoredTheme());
   private platformId = inject(PLATFORM_ID);
+  private mediaQuery: MediaQueryList | null = null;
 
   constructor() {
     // Apply theme only in browser environment
     if (isPlatformBrowser(this.platformId)) {
+      this.initSystemThemeDetection();
       this.applyTheme(this.currentTheme$.value);
     }
   }
@@ -23,7 +25,7 @@ export class ThemeService {
    * Get all available themes
    */
   getAvailableThemes(): ThemeType[] {
-    return ['blue', 'purple', 'emerald', 'amber'];
+    return ['blue', 'purple', 'emerald', 'amber', 'system'];
   }
 
   /**
@@ -52,6 +54,32 @@ export class ThemeService {
   }
 
   /**
+   * Initialize system theme detection
+   */
+  private initSystemThemeDetection(): void {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return;
+    }
+
+    this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    this.mediaQuery.addEventListener('change', this.handleSystemThemeChange.bind(this));
+
+    // Apply system theme if current theme is 'system'
+    if (this.currentTheme$.value === 'system') {
+      this.applyTheme('system');
+    }
+  }
+
+  /**
+   * Handle system theme change
+   */
+  private handleSystemThemeChange(e: MediaQueryListEvent): void {
+    if (this.currentTheme$.value === 'system') {
+      this.applyTheme('system');
+    }
+  }
+
+  /**
    * Get theme from localStorage or return default
    */
   private getStoredTheme(): ThemeType {
@@ -75,10 +103,21 @@ export class ThemeService {
     }
 
     const root = document.documentElement;
-    if (theme === 'blue') {
+    let actualTheme: string;
+
+    if (theme === 'system') {
+      actualTheme = this.mediaQuery?.matches ? 'dark' : 'light';
+      // For now, map to blue theme, but could have dark variants
+      actualTheme = 'blue'; // TODO: implement dark themes
+    } else {
+      actualTheme = theme;
+    }
+
+    if (actualTheme === 'blue') {
+      // Blue is the default theme; remove attribute to use :root styles
       root.removeAttribute('data-theme');
     } else {
-      root.setAttribute('data-theme', theme);
+      root.setAttribute('data-theme', actualTheme);
     }
   }
 }

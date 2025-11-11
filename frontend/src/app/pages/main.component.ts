@@ -14,11 +14,13 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService, User } from '../core/services/auth.service';
 import { ThemeService } from '../core/services/theme.service';
 import { DashboardService, DashboardStats } from '../core/services/dashboard.service';
+import { PwaService } from '../core/services/pwa.service';
 
 interface SystemAlert {
   type: 'success' | 'info' | 'warning' | 'error';
   message: string;
   timestamp: Date;
+  key: string;
 }
 
 @Component({
@@ -42,12 +44,21 @@ export class MainComponent implements OnInit, OnDestroy {
   currentUser: User | null = null;
   stats$: Observable<DashboardStats>;
   alerts: SystemAlert[] = [];
+  private dismissedAlerts: Set<string> = new Set();
   private destroy$ = new Subject<void>();
+
+  chartData: { day: string; height: number; value: number }[] = [];
+  successRate: number = 0;
 
   private authService = inject(AuthService);
   protected themeService = inject(ThemeService);
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
+  private pwaService = inject(PwaService);
+
+  get installPromptVisible$() {
+    return this.pwaService.installPromptVisible$;
+  }
 
   constructor() {
     // Initialize stats$ from dashboard service with error handling
@@ -63,9 +74,21 @@ export class MainComponent implements OnInit, OnDestroy {
         this.currentUser = user;
       });
 
+    // Initialize chartData with mock data
+    this.chartData = [
+      { day: 'Mon', height: 65, value: 12 },
+      { day: 'Tue', height: 80, value: 19 },
+      { day: 'Wed', height: 45, value: 8 },
+      { day: 'Thu', height: 90, value: 21 },
+      { day: 'Fri', height: 70, value: 15 },
+      { day: 'Sat', height: 55, value: 10 },
+      { day: 'Sun', height: 85, value: 18 }
+    ];
+
     // Initialize alerts based on stats
     this.stats$.pipe(takeUntil(this.destroy$)).subscribe(stats => {
       this.updateAlerts(stats);
+      this.successRate = this.getSuccessRate(stats.totalAuditLogs || 0, stats.failedLoginAttempts || 0);
     });
   }
 
@@ -91,57 +114,72 @@ export class MainComponent implements OnInit, OnDestroy {
     this.router.navigate(['/settings']);
   }
 
+  dismissAlert(alert: SystemAlert): void {
+    this.dismissedAlerts.add(alert.key);
+    this.alerts = this.alerts.filter(a => a.key !== alert.key);
+  }
+
   private updateAlerts(stats: DashboardStats): void {
-    this.alerts = [];
+    const nextAlerts: SystemAlert[] = [];
 
     if (stats.systemHealth !== 'HEALTHY') {
-      this.alerts.push({
-        type: 'error',
-        message: 'System health is degraded. Please check system status.',
-        timestamp: new Date()
-      });
+      const key = 'system-health-error';
+      if (!this.dismissedAlerts.has(key)) {
+        nextAlerts.push({
+          type: 'error',
+          message: 'System health is degraded. Please check system status.',
+          timestamp: new Date(),
+          key
+        });
+      }
     }
 
     if (stats.failedLoginAttempts > 10) {
-      this.alerts.push({
-        type: 'warning',
-        message: `High number of failed login attempts: ${stats.failedLoginAttempts}`,
-        timestamp: new Date()
-      });
+      const key = 'failed-attempts-warning';
+      if (!this.dismissedAlerts.has(key)) {
+        nextAlerts.push({
+          type: 'warning',
+          message: `High number of failed login attempts: ${stats.failedLoginAttempts}`,
+          timestamp: new Date(),
+          key
+        });
+      }
     }
 
     if (stats.activeSessions > 50) {
-      this.alerts.push({
-        type: 'info',
-        message: `High active sessions: ${stats.activeSessions} users online`,
-        timestamp: new Date()
-      });
+      const key = 'active-sessions-info';
+      if (!this.dismissedAlerts.has(key)) {
+        nextAlerts.push({
+          type: 'info',
+          message: `High active sessions: ${stats.activeSessions} users online`,
+          timestamp: new Date(),
+          key
+        });
+      }
     }
 
     // Always show a success alert if system is healthy
-    if (stats.systemHealth === 'HEALTHY' && this.alerts.length === 0) {
-      this.alerts.push({
-        type: 'success',
-        message: 'All systems operational',
-        timestamp: new Date()
-      });
+    if (stats.systemHealth === 'HEALTHY' && nextAlerts.length === 0) {
+      const key = 'system-health-success';
+      if (!this.dismissedAlerts.has(key)) {
+        nextAlerts.push({
+          type: 'success',
+          message: 'All systems operational',
+          timestamp: new Date(),
+          key
+        });
+      }
     }
-  }
 
-  getRandomHeight(day: number): number {
-    // Mock data for chart bars
-    const heights = [65, 80, 45, 90, 70, 55, 85];
-    return heights[day - 1] || 50;
-  }
-
-  getRandomValue(day: number): number {
-    // Mock values for user activity
-    const values = [12, 19, 8, 21, 15, 10, 18];
-    return values[day - 1] || 0;
+    this.alerts = nextAlerts;
   }
 
   getSuccessRate(totalLogs: number, failedAttempts: number): number {
     if (totalLogs === 0) return 100;
     return Math.round(((totalLogs - failedAttempts) / totalLogs) * 100);
+  }
+
+  installPwa(): void {
+    this.pwaService.installPwa();
   }
 }

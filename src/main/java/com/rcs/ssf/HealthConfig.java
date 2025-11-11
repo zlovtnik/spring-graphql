@@ -31,10 +31,7 @@ public class HealthConfig {
         this.minioClient = minioClient;
     }
 
-    // For testing
-    void setMinioClient(MinioClient minioClient) {
-        // Cannot set final field in production, but allow for testing
-    }
+
 
     @Bean
     @ConditionalOnBean(DataSource.class)

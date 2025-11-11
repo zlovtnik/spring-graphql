@@ -7,6 +7,9 @@ export const routes: Routes = [
   { path: 'register', loadComponent: () => import('./features/auth/register.component').then(m => m.RegisterComponent) },
   { path: 'main', loadComponent: () => import('./pages/main.component').then(m => m.MainComponent), canActivate: [authGuard] },
   { path: 'dynamic-crud', loadComponent: () => import('./features/dynamic-crud/pages/table-browser/table-browser.component').then(m => m.TableBrowserComponent), canActivate: [authGuard] },
-  { path: 'welcome', loadChildren: () => import('./pages/welcome/welcome.routes').then(m => m.WELCOME_ROUTES) }
+  { path: 'users', loadComponent: () => import('./pages/main.component').then(m => m.MainComponent), canActivate: [authGuard] }, // Placeholder: redirect to main
+  { path: 'settings', loadComponent: () => import('./pages/main.component').then(m => m.MainComponent), canActivate: [authGuard] }, // Placeholder: redirect to main
+  { path: 'analytics', loadComponent: () => import('./pages/main.component').then(m => m.MainComponent), canActivate: [authGuard] }, // Placeholder: redirect to main
+  { path: 'monitor', loadComponent: () => import('./pages/main.component').then(m => m.MainComponent), canActivate: [authGuard] } // Placeholder: redirect to main
 ];
 

@@ -23,6 +23,16 @@
         <span nz-icon nzType="logout"></span>
         Logout
       </button>
+      <button
+        *ngIf="installPromptVisible$ | async"
+        nz-button
+        nzType="default"
+        (click)="installPwa()"
+        class="install-btn"
+      >
+        <span nz-icon nzType="download"></span>
+        Install App
+      </button>
     </div>
   </div>
 
@@ -63,13 +73,13 @@
         <nz-card class="stat-card card">
           <div nz-row nzType="flex" nzJustify="space-between" nzAlign="middle">
             <div nz-col class="stat-content">
-              <h3>API Calls Today</h3>
+              <h3>Login Attempts Today</h3>
               <nz-statistic 
-                [nzValue]="(stats$ | async)?.apiCallsToday || 0" 
+                [nzValue]="(stats$ | async)?.loginAttemptsToday || 0" 
                 [ngStyle]="{'color': 'var(--tertiary-base)'}">
               </nz-statistic>
             </div>
-            <span nz-icon nzType="api" nzTheme="outline" class="stat-icon icon-tertiary"></span>
+            <span nz-icon nzType="login" nzTheme="outline" class="stat-icon icon-tertiary"></span>
           </div>
         </nz-card>
       </nz-col>
@@ -109,6 +119,7 @@
               [nzDescription]="alert.timestamp | date:'short'"
               nzShowIcon
               nzCloseable
+              (nzOnClose)="dismissAlert(alert)"
               class="system-alert">
             </nz-alert>
           </div>
@@ -118,23 +129,23 @@
 
     <!-- Charts Section -->
     <nz-row [nzGutter]="[16, 16]" style="margin-top: 24px">
-      <nz-col [nzSpan]="12">
+      <nz-col [nzXs]="24" [nzMd]="12">
         <nz-card class="chart-card card" nzTitle="User Activity Trends (Last 7 Days)">
           <div class="chart-placeholder">
             <div class="chart-data">
-              <div class="chart-bar" *ngFor="let day of [1,2,3,4,5,6,7]" 
-                   [style.height.%]="getRandomHeight(day)">
-                <span class="bar-value">{{ getRandomValue(day) }}</span>
+              <div class="chart-bar" *ngFor="let item of chartData" 
+                   [style.height.%]="item.height">
+                <span class="bar-value">{{ item.value }}</span>
               </div>
             </div>
             <div class="chart-labels">
-              <span *ngFor="let day of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']">{{ day }}</span>
+              <span *ngFor="let item of chartData">{{ item.day }}</span>
             </div>
           </div>
         </nz-card>
       </nz-col>
 
-      <nz-col [nzSpan]="12">
+      <nz-col [nzXs]="24" [nzMd]="12">
         <nz-card class="chart-card card" nzTitle="Audit Logs Overview">
           <div class="audit-overview">
             <div class="audit-stat">
@@ -148,7 +159,7 @@
             <div class="audit-stat">
               <h4>Success Rate</h4>
               <nz-statistic 
-                [nzValue]="getSuccessRate((stats$ | async)?.totalAuditLogs || 0, (stats$ | async)?.failedLoginAttempts || 0)" 
+                [nzValue]="successRate" 
                 [nzSuffix]="'%'"
                 [ngStyle]="{'color': 'green'}">
               </nz-statistic>

@@ -32,15 +32,18 @@ public class UserController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<User> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         User user = new User();
         user.setUsername(request.username());
         user.setEmail(request.email());
         user.setPassword(request.password());
 
         User savedUser = userService.createUser(user);
-        URI location = URI.create("/api/users/" + savedUser.getId());
-        return ResponseEntity.created(location).body(savedUser);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(savedUser.getId())
+            .toUri();
+        return ResponseEntity.created(location).body(UserResponse.from(savedUser));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -69,4 +72,14 @@ public class UserController {
             @Email @Size(max = 254) String email,
             @Size(min = 8, max = 100) String password
     ) {}
+
+    public record UserResponse(
+            UUID id,
+            String username,
+            String email
+    ) {
+        public static UserResponse from(User user) {
+            return new UserResponse(user.getId(), user.getUsername(), user.getEmail());
+        }
+    }
 }

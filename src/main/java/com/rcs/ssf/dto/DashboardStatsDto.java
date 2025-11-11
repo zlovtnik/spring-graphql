@@ -8,6 +8,6 @@ public class DashboardStatsDto {
     private long activeSessions;
     private long totalAuditLogs;
     private String systemHealth;
-    private long apiCallsToday;
+    private long loginAttemptsToday;
     private long failedLoginAttempts;
 }

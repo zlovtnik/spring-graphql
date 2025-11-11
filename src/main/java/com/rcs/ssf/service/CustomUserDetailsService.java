@@ -1,5 +1,6 @@
 package com.rcs.ssf.service;
 
+import com.rcs.ssf.entity.User;
 import com.rcs.ssf.repository.UserRepository;
 import com.rcs.ssf.security.AuthenticatedUser;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -21,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        com.rcs.ssf.entity.User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
         return new AuthenticatedUser(
                 user.getId(),

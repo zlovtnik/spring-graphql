@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 export interface DashboardStats {
@@ -8,7 +8,7 @@ export interface DashboardStats {
   activeSessions: number;
   totalAuditLogs: number;
   systemHealth: string;
-  apiCallsToday: number;
+  loginAttemptsToday: number;
   failedLoginAttempts: number;
 }
 
@@ -26,10 +26,8 @@ export class DashboardService {
    */
   getStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>(this.apiUrl).pipe(
-      // Add a small delay to avoid UI jank during initial load
-      delay(300),
       catchError((error: HttpErrorResponse) => {
-        console.warn('Failed to fetch dashboard stats, using fallback data:', error.message);
+        console.error('Failed to fetch dashboard stats:', error.message);
         // Return mock/fallback data with default values
         return of(this.getMockStats());
       })
@@ -46,7 +44,7 @@ export class DashboardService {
       activeSessions: 1,
       totalAuditLogs: 0,
       systemHealth: 'HEALTHY',
-      apiCallsToday: 0,
+      loginAttemptsToday: 0,
       failedLoginAttempts: 0
     };
   }

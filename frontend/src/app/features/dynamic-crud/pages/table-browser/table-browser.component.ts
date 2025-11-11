@@ -72,6 +72,7 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
   pageSize = 10;
   currentPage = 1;
   searchValue = '';
+  selectedSearchColumn = '';
   sortField = '';
   sortOrder: 'ASC' | 'DESC' = 'ASC';
 
@@ -133,13 +134,8 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
       orderDirection: this.sortOrder
     };
 
-    if (this.searchValue) {
-      // Simple search - in a real implementation, this would be more sophisticated
-      request.filters = [{
-        column: 'id', // Assuming ID column exists
-        operator: 'LIKE',
-        value: `%${this.searchValue}%`
-      }];
+    if (this.searchValue && this.columns.length > 0) {
+      request.filters = this.buildSearchFilters();
     }
 
     this.http.post<DynamicCrudResponse>('/api/dynamic-crud/execute', request)
@@ -321,7 +317,14 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
 
     const headers = this.columns.map(col => col.name).join(',');
     const rows = this.tableData.map(row =>
-      this.columns.map(col => row[col.name] || '').join(',')
+      this.columns.map(col => {
+        let value = row[col.name] || '';
+        // Escape quotes and wrap in quotes if contains comma/quote/newline
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          value = '"' + value.replace(/"/g, '""') + '"';
+        }
+        return value;
+      }).join(',')
     ).join('\n');
 
     const csv = `${headers}\n${rows}`;
@@ -352,5 +355,23 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  private buildSearchFilters(): Array<{column: string, operator: string, value: any}> {
+    if (this.selectedSearchColumn) {
+      return [{ column: this.selectedSearchColumn, operator: 'LIKE', value: `%${this.searchValue}%` }];
+    } else {
+      const textColumns = this.columns.filter(col => this.isTextColumn(col.type));
+      if (textColumns.length > 0) {
+        return textColumns.map(col => ({ column: col.name, operator: 'LIKE', value: `%${this.searchValue}%` }));
+      } else {
+        return [];
+      }
+    }
+  }
+
+  private isTextColumn(type: string): boolean {
+    const lowerType = type.toLowerCase();
+    return lowerType.includes('char') || lowerType.includes('varchar') || lowerType.includes('text') || lowerType.includes('clob');
   }
 }

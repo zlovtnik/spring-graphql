@@ -43,16 +43,16 @@ public class DashboardService {
         // System health - for now, assume healthy if we can connect to DB
         stats.setSystemHealth("HEALTHY");
 
-        // API calls today - this might need to be tracked separately, for now use login attempts
-        Long apiCallsToday = jdbcTemplate.queryForObject(
+        // Login attempts today
+        Long loginAttemptsToday = jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM audit_login_attempts WHERE TRUNC(created_at) = TRUNC(SYSDATE)",
             Long.class
         );
-        stats.setApiCallsToday(apiCallsToday != null ? apiCallsToday : 0);
+        stats.setLoginAttemptsToday(loginAttemptsToday != null ? loginAttemptsToday : 0);
 
         // Failed login attempts
         Long failedAttempts = jdbcTemplate.queryForObject(
-            "SELECT COUNT(*) FROM audit_login_attempts WHERE success = 0",
+            "SELECT COUNT(*) FROM audit_login_attempts WHERE success = 0 AND TRUNC(created_at) = TRUNC(SYSDATE)",
             Long.class
         );
         stats.setFailedLoginAttempts(failedAttempts != null ? failedAttempts : 0);

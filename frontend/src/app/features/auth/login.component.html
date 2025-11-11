@@ -75,6 +75,7 @@
         (click)="themeService.setTheme(theme)"
         [class.active]="(themeService.getCurrentTheme$() | async) === theme"
         [class]="'theme-btn theme-' + theme"
+        [attr.aria-label]="'Select ' + theme + ' theme'"
       >
         {{ theme | titlecase }}
       </button>

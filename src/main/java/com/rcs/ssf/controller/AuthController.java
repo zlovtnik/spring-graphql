@@ -60,7 +60,7 @@ public class AuthController {
                 return new AuthenticationCredentialsNotFoundException("Authenticated user record not found for session start");
             });
             auditService.logSessionStart(user.getId().toString(), jwt, ipAddress, userAgent);
-            return ResponseEntity.ok(new AuthResponse(jwt));
+            return ResponseEntity.ok(new AuthResponse(jwt, new AuthResponse.User(user.getId(), user.getUsername(), user.getEmail())));
         } catch (AuthenticationException e) {
             auditService.logLoginAttempt(username, false, ipAddress, userAgent, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -81,10 +81,10 @@ public class AuthController {
 
             if (isValid) {
                 String username = jwtTokenProvider.getUsernameFromJwt(token);
-                return ResponseEntity.ok(new AuthResponse("Token is valid for user: " + username));
+                return ResponseEntity.ok(new TokenValidationResponse(true, username));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Invalid token");
+                        .body(new TokenValidationResponse(false, null));
             }
         } catch (JwtException | IllegalArgumentException e) {
             LOGGER.error("Token validation failed: {}", e.getMessage(), e);
@@ -104,4 +104,6 @@ public class AuthController {
         }
         return request.getRemoteAddr();
     }
+
+    public record TokenValidationResponse(boolean valid, String username) {}
 }
