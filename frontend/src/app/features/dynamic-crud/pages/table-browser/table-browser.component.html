@@ -24,7 +24,7 @@
   <div class="table-actions" *ngIf="selectedTable">
     <div class="action-left">
       <nz-input-group nzSearch [nzAddOnAfter]="suffixIconButton">
-        <input type="text" nz-input [(ngModel)]="searchValue" placeholder="Search..." />
+        <input type="text" nz-input [(ngModel)]="searchValue" placeholder="Search..." data-shortcut="search" />
       </nz-input-group>
       <ng-template #suffixIconButton>
         <button nz-button nzType="primary" nzSearch (click)="onSearch()">
@@ -123,7 +123,7 @@
   <nz-modal
     [(nzVisible)]="isCreateModalVisible"
     nzTitle="Create New Record"
-    (nzOnCancel)="isCreateModalVisible = false"
+    (nzOnCancel)="closeCreateModal()"
     (nzOnOk)="handleCreate()"
     [nzOkLoading]="loading">
     <ng-container *nzModalContent>
@@ -135,7 +135,7 @@
   <nz-modal
     [(nzVisible)]="isEditModalVisible"
     nzTitle="Edit Record"
-    (nzOnCancel)="isEditModalVisible = false"
+    (nzOnCancel)="closeEditModal()"
     (nzOnOk)="handleUpdate()"
     [nzOkLoading]="loading">
     <ng-container *nzModalContent>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
 import { Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+import { ModalService } from '../../../../core/services/modal.service';
 
 interface TableData {
   [key: string]: any;
@@ -83,12 +84,17 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
   formData: { [key: string]: any } = {};
 
   private destroy$ = new Subject<void>();
+  private createModalCloseHandler?: () => void;
+  private editModalCloseHandler?: () => void;
+  private modalService!: ModalService;
 
   constructor(
     private http: HttpClient,
     private message: NzMessageService,
     private router: Router
-  ) {}
+  ) {
+    this.modalService = inject(ModalService);
+  }
 
   ngOnInit(): void {
     this.loadAvailableTables();
@@ -212,12 +218,16 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
       }
     });
     this.isCreateModalVisible = true;
+    this.createModalCloseHandler = () => this.isCreateModalVisible = false;
+    this.modalService.registerCloseHandler(this.createModalCloseHandler);
   }
 
   showEditModal(record: TableData): void {
     this.editingRecord = record;
     this.formData = { ...record };
     this.isEditModalVisible = true;
+    this.editModalCloseHandler = () => this.isEditModalVisible = false;
+    this.modalService.registerCloseHandler(this.editModalCloseHandler);
   }
 
   handleCreate(): void {
@@ -240,6 +250,10 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
         next: () => {
           this.message.success('Record created successfully');
           this.isCreateModalVisible = false;
+          if (this.createModalCloseHandler) {
+            this.modalService.unregisterCloseHandler(this.createModalCloseHandler);
+            this.createModalCloseHandler = undefined;
+          }
           this.loadTableData();
         },
         error: (error) => {
@@ -275,6 +289,10 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
           this.message.success('Record updated successfully');
           this.isEditModalVisible = false;
           this.editingRecord = null;
+          if (this.editModalCloseHandler) {
+            this.modalService.unregisterCloseHandler(this.editModalCloseHandler);
+            this.editModalCloseHandler = undefined;
+          }
           this.loadTableData();
         },
         error: (error) => {
@@ -350,6 +368,22 @@ export class TableBrowserComponent implements OnInit, OnDestroy {
         return 'checkbox';
       default:
         return 'text';
+    }
+  }
+
+  closeCreateModal(): void {
+    this.isCreateModalVisible = false;
+    if (this.createModalCloseHandler) {
+      this.modalService.unregisterCloseHandler(this.createModalCloseHandler);
+      this.createModalCloseHandler = undefined;
+    }
+  }
+
+  closeEditModal(): void {
+    this.isEditModalVisible = false;
+    if (this.editModalCloseHandler) {
+      this.modalService.unregisterCloseHandler(this.editModalCloseHandler);
+      this.editModalCloseHandler = undefined;
     }
   }
 

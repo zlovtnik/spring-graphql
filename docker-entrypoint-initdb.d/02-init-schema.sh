@@ -5,8 +5,8 @@ echo "=== Creating additional audit tables ==="
 DB_PASSWORD=${DB_USER_PASSWORD:-ssfuser}
 
 # Create audit tables
-$ORACLE_HOME/bin/sqlplus -L /nolog <<EOFAUDIT
-CONNECT ssfuser/$DB_PASSWORD@FREEPDB1;
+$ORACLE_HOME/bin/sqlplus -L /nolog > /tmp/init_audit.log 2>&1 <<EOFAUDIT
+CONNECT ssfuser/"$DB_PASSWORD"@FREEPDB1;
 SET ECHO OFF FEEDBACK OFF PAGESIZE 0 LINESIZE 1000 HEADING OFF
 
 -- Create audit_login_attempts table

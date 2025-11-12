@@ -2,6 +2,7 @@ package com.rcs.ssf.controller;
 
 import com.rcs.ssf.dto.AuthRequest;
 import com.rcs.ssf.dto.AuthResponse;
+import com.rcs.ssf.dto.UserDto;
 import com.rcs.ssf.security.JwtTokenProvider;
 import com.rcs.ssf.service.AuditService;
 import com.rcs.ssf.service.UserService;
@@ -60,7 +61,7 @@ public class AuthController {
                 return new AuthenticationCredentialsNotFoundException("Authenticated user record not found for session start");
             });
             auditService.logSessionStart(user.getId().toString(), jwt, ipAddress, userAgent);
-            return ResponseEntity.ok(new AuthResponse(jwt, new AuthResponse.User(user.getId(), user.getUsername(), user.getEmail())));
+            return ResponseEntity.ok(new AuthResponse(jwt, UserDto.from(user)));
         } catch (AuthenticationException e) {
             auditService.logLoginAttempt(username, false, ipAddress, userAgent, e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

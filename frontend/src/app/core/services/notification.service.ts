@@ -50,7 +50,7 @@ export class NotificationService {
     });
 
     // Show toast
-    const messageId = this.messageService.create(type, message, {
+    this.messageService.create(type, message, {
       nzDuration: persist ? 0 : duration
     });
   }
@@ -79,7 +79,7 @@ export class NotificationService {
     // Show notification
     this.notificationService.create(type, title, message, {
       nzDuration: persist ? 0 : duration,
-      nzKey: `notification-${Date.now()}`
+      nzKey: `notification-${this.nextId - 1}` // Use the same ID as history
     });
     // Note: Action buttons not implemented yet
   }
@@ -98,8 +98,12 @@ export class NotificationService {
     const history = this.history$.value;
     const index = history.findIndex(n => n.id === id);
     if (index !== -1) {
-      history[index].read = true;
-      this.history$.next([...history]);
+      const updatedHistory = [
+        ...history.slice(0, index),
+        { ...history[index], read: true },
+        ...history.slice(index + 1)
+      ];
+      this.history$.next(updatedHistory);
     }
   }
 
@@ -142,12 +146,13 @@ export class NotificationService {
       case 'error': return 'Error';
       case 'warning': return 'Warning';
       case 'info': return 'Info';
-      default: return 'Notification';
     }
   }
 
+  private readonly MAX_HISTORY_ITEMS = 100;
+
   private addToHistory(notification: NotificationHistory): void {
     const history = this.history$.value;
-    this.history$.next([notification, ...history].slice(0, 100)); // Keep last 100
+    this.history$.next([notification, ...history].slice(0, this.MAX_HISTORY_ITEMS));
   }
 }

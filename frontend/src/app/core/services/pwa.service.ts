@@ -2,11 +2,16 @@ import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform?: string }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class PwaService {
-  private deferredPrompt: any;
+  private deferredPrompt: BeforeInstallPromptEvent | null = null;
   private installPrompt$ = new BehaviorSubject<boolean>(false);
   private platformId = inject(PLATFORM_ID);
 
@@ -21,7 +26,7 @@ export class PwaService {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later
-      this.deferredPrompt = e;
+      this.deferredPrompt = e as BeforeInstallPromptEvent;
       // Update UI to notify the user they can install the PWA
       this.installPrompt$.next(true);
     });
@@ -31,8 +36,6 @@ export class PwaService {
       this.installPrompt$.next(false);
       // Clear the deferredPrompt so it can be garbage collected
       this.deferredPrompt = null;
-      // Optionally, send analytics event to indicate successful install
-      console.log('PWA was installed');
     });
   }
 
@@ -49,7 +52,7 @@ export class PwaService {
     this.deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
-    const { outcome } = await this.deferredPrompt.userChoice;
+    await this.deferredPrompt.userChoice;
 
     // We've used the prompt, and can't use it again, throw it away
     this.deferredPrompt = null;

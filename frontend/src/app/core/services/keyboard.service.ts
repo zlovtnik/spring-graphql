@@ -1,7 +1,8 @@
-import { Injectable, PLATFORM_ID, inject } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject, OnDestroy } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
+import { ModalService } from './modal.service';
 
 export interface KeyboardShortcut {
   key: string;
@@ -15,10 +16,12 @@ export interface KeyboardShortcut {
 @Injectable({
   providedIn: 'root'
 })
-export class KeyboardService {
+export class KeyboardService implements OnDestroy {
   private shortcuts: KeyboardShortcut[] = [];
   private platformId = inject(PLATFORM_ID);
   private router = inject(Router);
+  private modalService = inject(ModalService);
+  private keydownListener?: (e: KeyboardEvent) => void;
 
   shortcutTriggered$ = new Subject<KeyboardShortcut>();
 
@@ -29,11 +32,32 @@ export class KeyboardService {
     }
   }
 
+  ngOnDestroy(): void {
+    if (this.keydownListener) {
+      document.removeEventListener('keydown', this.keydownListener);
+    }
+    this.shortcutTriggered$.complete();
+  }
+
   /**
    * Register a keyboard shortcut
    */
   registerShortcut(shortcut: KeyboardShortcut): void {
-    this.shortcuts.push(shortcut);
+    const signature = this.getShortcutSignature(shortcut);
+    const existingIndex = this.shortcuts.findIndex(s => this.getShortcutSignature(s) === signature);
+    if (existingIndex === -1) {
+      this.shortcuts.push(shortcut);
+    } else {
+      // Replace existing shortcut
+      this.shortcuts[existingIndex] = shortcut;
+    }
+  }
+
+  /**
+   * Get a normalized signature for shortcut comparison
+   */
+  private getShortcutSignature(shortcut: KeyboardShortcut): string {
+    return `${shortcut.key.toLowerCase()}-${!!shortcut.ctrlKey}-${!!shortcut.altKey}-${!!shortcut.shiftKey}`;
   }
 
   /**
@@ -56,7 +80,7 @@ export class KeyboardService {
    * Initialize global keyboard listener
    */
   private initKeyboardListener(): void {
-    document.addEventListener('keydown', (event) => {
+    this.keydownListener = (event) => {
       // Skip if typing in input/textarea
       if (this.isTypingInInput(event.target as HTMLElement)) {
         return;
@@ -64,7 +88,7 @@ export class KeyboardService {
 
       const shortcut = this.shortcuts.find(s =>
         s.key.toLowerCase() === event.key.toLowerCase() &&
-        !!s.ctrlKey === event.ctrlKey &&
+        Boolean(s.ctrlKey) === (event.ctrlKey || event.metaKey) &&
         !!s.altKey === event.altKey &&
         !!s.shiftKey === event.shiftKey
       );
@@ -74,7 +98,8 @@ export class KeyboardService {
         shortcut.action();
         this.shortcutTriggered$.next(shortcut);
       }
-    });
+    };
+    document.addEventListener('keydown', this.keydownListener);
   }
 
   /**
@@ -87,7 +112,11 @@ export class KeyboardService {
       ctrlKey: true,
       description: 'Focus search',
       action: () => {
-        const searchInput = document.querySelector('input[placeholder*="search" i], input[placeholder*="Search" i]') as HTMLInputElement;
+        let searchInput = document.querySelector('[data-shortcut="search"]') as HTMLInputElement;
+        if (!searchInput) {
+          // Fallback to placeholder lookup
+          searchInput = document.querySelector('input[placeholder*="search" i], input[placeholder*="Search" i]') as HTMLInputElement;
+        }
         if (searchInput) {
           searchInput.focus();
         }
@@ -109,43 +138,37 @@ export class KeyboardService {
       key: 'Escape',
       description: 'Close modals and drawers',
       action: () => {
-        const modal = document.querySelector('.ant-modal-mask');
-        const drawer = document.querySelector('.ant-drawer-mask');
-        if (modal) {
-          (modal.parentElement?.querySelector('.ant-modal-close') as HTMLElement)?.click();
-        } else if (drawer) {
-          (drawer.parentElement?.querySelector('.ant-drawer-close') as HTMLElement)?.click();
-        }
+        this.modalService.closeAll();
       }
     });
 
-    // Ctrl+H: Go to dashboard/home
+    // Alt+H: Go to dashboard/home
     this.registerShortcut({
       key: 'h',
-      ctrlKey: true,
+      altKey: true,
       description: 'Go to dashboard',
       action: () => {
-        this.router.navigate(['/']);
+        this.navigateIfRouteExists(['/']);
       }
     });
 
-    // Ctrl+U: Go to users
+    // Alt+U: Go to users
     this.registerShortcut({
       key: 'u',
-      ctrlKey: true,
+      altKey: true,
       description: 'Go to users',
       action: () => {
-        this.router.navigate(['/users']);
+        this.navigateIfRouteExists(['/users']);
       }
     });
 
-    // Ctrl+D: Go to dynamic CRUD
+    // Alt+D: Go to dynamic CRUD
     this.registerShortcut({
       key: 'd',
-      ctrlKey: true,
+      altKey: true,
       description: 'Go to dynamic CRUD',
       action: () => {
-        this.router.navigate(['/dynamic-crud']);
+        this.navigateIfRouteExists(['/dynamic-crud']);
       }
     });
   }
@@ -158,6 +181,18 @@ export class KeyboardService {
     const contentEditable = target.contentEditable === 'true';
     const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
     return isInput || contentEditable;
+  }
+
+  /**
+   * Navigate to route if it exists
+   */
+  private navigateIfRouteExists(route: string[]): void {
+    // Simple check: try to navigate and catch if it fails
+    try {
+      this.router.navigate(route);
+    } catch (error) {
+      console.warn(`Route ${route.join('/')} not found, skipping navigation`);
+    }
   }
 
   /**

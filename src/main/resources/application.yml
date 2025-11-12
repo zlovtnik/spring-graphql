@@ -37,7 +37,7 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:your-default-jwt-secret-change-in-production}
   minio:
     url: http://localhost:9000
     access-key: ${MINIO_ACCESS_KEY}

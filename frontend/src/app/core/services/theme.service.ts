@@ -106,8 +106,6 @@ export class ThemeService {
     let actualTheme: string;
 
     if (theme === 'system') {
-      actualTheme = this.mediaQuery?.matches ? 'dark' : 'light';
-      // For now, map to blue theme, but could have dark variants
       actualTheme = 'blue'; // TODO: implement dark themes
     } else {
       actualTheme = theme;

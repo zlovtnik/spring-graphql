@@ -22,7 +22,7 @@ services:
       test: ["CMD", "/opt/oracle/healthcheck.sh"]
       interval: 10s
       timeout: 5s
-      retries: 0
+      retries: 10
       start_period: 180s
     shm_size: 2gb
 

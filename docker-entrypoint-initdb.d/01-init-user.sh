@@ -100,7 +100,7 @@ sleep 2
 # Initialize schema and create default user if none exists
 echo "=== Initializing database schema ==="
 
-$ORACLE_HOME/bin/sqlplus -s ssfuser/${DB_PASSWORD}@FREEPDB1 > /tmp/init_schema.log 2>&1 <<'EOFSCHEMA'
+$ORACLE_HOME/bin/sqlplus -s ssfuser/"$DB_PASSWORD"@FREEPDB1 > /tmp/init_schema.log 2>&1 <<'EOFSCHEMA'
 -- Create sequences
 DECLARE
   v_seq_exists NUMBER := 0;

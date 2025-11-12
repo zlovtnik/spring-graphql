@@ -2,6 +2,7 @@ package com.rcs.ssf.controller;
 
 import com.rcs.ssf.entity.User;
 import com.rcs.ssf.service.UserService;
+import com.rcs.ssf.dto.UserDto;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class UserController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest request) {
         User user = new User();
         user.setUsername(request.username());
         user.setEmail(request.email());
@@ -43,7 +44,7 @@ public class UserController {
             .path("/{id}")
             .buildAndExpand(savedUser.getId())
             .toUri();
-        return ResponseEntity.created(location).body(UserResponse.from(savedUser));
+        return ResponseEntity.created(location).body(UserDto.from(savedUser));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -72,14 +73,4 @@ public class UserController {
             @Email @Size(max = 254) String email,
             @Size(min = 8, max = 100) String password
     ) {}
-
-    public record UserResponse(
-            UUID id,
-            String username,
-            String email
-    ) {
-        public static UserResponse from(User user) {
-            return new UserResponse(user.getId(), user.getUsername(), user.getEmail());
-        }
-    }
 }
