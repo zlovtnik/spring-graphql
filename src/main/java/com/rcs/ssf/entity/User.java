@@ -36,6 +36,9 @@ public class User {
 
     // Custom constructor for convenient creation
     public User(String username, String password, String email) {
+        if (username == null || username.isBlank() || password == null || password.isBlank() || email == null || email.isBlank()) {
+            throw new IllegalArgumentException("username, password, and email must not be null or blank");
+        }
         this.username = username;
         this.password = password;
         this.email = email;

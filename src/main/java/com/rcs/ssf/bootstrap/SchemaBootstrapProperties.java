@@ -1,6 +1,7 @@
 package com.rcs.ssf.bootstrap;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -18,7 +19,7 @@ public class SchemaBootstrapProperties {
 
     private String validationTable = "USERS";
 
-        private List<String> scripts = new ArrayList<>(List.of(
+    private List<String> scripts = new ArrayList<>(List.of(
             "classpath:sequences/audit_seq.sql",
             "classpath:types/dynamic_types.sql",
             "classpath:tables/users.sql",
@@ -58,7 +59,7 @@ public class SchemaBootstrapProperties {
     }
 
     public List<String> getScripts() {
-        return scripts;
+        return scripts != null ? Collections.unmodifiableList(new ArrayList<>(scripts)) : Collections.emptyList();
     }
 
     public void setScripts(List<String> scripts) {

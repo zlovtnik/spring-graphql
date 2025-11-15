@@ -93,13 +93,13 @@ query:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:}
+    secret: ${JWT_SECRET}
   security:
     enable-default-user-role: false  # Least-privilege: no implicit roles unless explicitly enabled
   minio:
     url: http://localhost:9000
-    access-key: ${MINIO_ACCESS_KEY:minio-access-key}
-    secret-key: ${MINIO_SECRET_KEY:minio-secret-key}
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
 
 ssf:
   cache:

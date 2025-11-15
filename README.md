@@ -271,6 +271,8 @@ Spring Boot properties can be set via `application.yml`, profile-specific files,
 | `server.ssl.*` | Keystore path, password, alias | No | Bundled PKCS12 keystore |
 | `spring.datasource.url` | Oracle JDBC URL | No | `jdbc:oracle:thin:@//${ORACLE_HOST}:${ORACLE_PORT}/${ORACLE_DB}` |
 | `spring.datasource.username` / `password` | Database credentials | No | `ssfuser` / `ssfuser` |
+| `spring.redis.host` | Redis server hostname | No | `localhost` |
+| `spring.redis.port` | Redis server port | No | `6379` |
 | `app.jwt.secret` | Symmetric signing key for JWT | **YES** | **None** (must be set via `JWT_SECRET` environment variable) |
 | `jwt.expiration` | Token lifetime (ms) | No | `86400000` (1 day) |
 | `app.minio.url` | MinIO endpoint | No | `http://localhost:9000` |
@@ -374,6 +376,23 @@ BASE_URL=https://production.example.com ./gradlew test --tests "*UserSimulation*
 - Composite health contributor registers `databaseFile`, `databaseConnection`, and `minio`
 - Custom Actuator indicator `you` surfaces AI readiness (`{"ai":"I am up and running!"}`)
 - Enable additional Actuator endpoints by adjusting `management.endpoints.web.exposure.include`
+
+### Partition Maintenance Job
+
+The rolling partition script (`scripts/partition-maintenance.sh`) now refuses to embed credentials on the command line. Instead, it reads the Oracle password from a local file with `600` permissions. By default the script looks for `.secrets/oracle-password` at the repo root, or you can point to another location via `ORACLE_PASSWORD_FILE`.
+
+```bash
+mkdir -p .secrets
+printf 'super-secret-password' > .secrets/oracle-password
+chmod 600 .secrets/oracle-password
+
+# optional: override location
+export ORACLE_PASSWORD_FILE=$PWD/.secrets/oracle-password
+
+./scripts/partition-maintenance.sh
+```
+
+Because SQL*Plus now receives the password via stdin, it no longer appears in process listings or shell history. Metrics continue to land in `metrics/partition-maintenance.prom` by default and can be overridden with `PARTITION_METRICS_FILE`.
 
 ### Building an OCI Image
 

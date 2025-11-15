@@ -41,7 +41,21 @@ class OracleSchemaBootstrapInitializer extends DataSourceScriptDatabaseInitializ
     @jakarta.annotation.PostConstruct
     public void triggerBootstrap() {
         LOGGER.info("Evaluating Oracle schema bootstrap");
+        if (!isOracleDatabase()) {
+            LOGGER.info("Skipping Oracle schema bootstrap because database is not Oracle");
+            return;
+        }
         initializeDatabase();
+    }
+
+    private boolean isOracleDatabase() {
+        try (Connection connection = getDataSource().getConnection()) {
+            String productName = connection.getMetaData().getDatabaseProductName();
+            return "Oracle".equalsIgnoreCase(productName);
+        } catch (SQLException ex) {
+            LOGGER.warn("Failed to determine database product; assuming not Oracle", ex);
+            return false;
+        }
     }
 
     private static DatabaseInitializationSettings buildSettings(SchemaBootstrapProperties properties) {
@@ -117,18 +131,19 @@ class OracleSchemaBootstrapInitializer extends DataSourceScriptDatabaseInitializ
         String line;
         while ((line = reader.readLine()) != null) {
             if (line.trim().equals("/")) {
-                dispatchStatement(current, consumer);
-            }
-            else {
+                dispatchStatement(current.toString(), consumer);
+                current.setLength(0);
+            } else {
                 current.append(line).append('\n');
             }
         }
-        dispatchStatement(current, consumer);
+        if (current.length() > 0) {
+            dispatchStatement(current.toString(), consumer);
+        }
     }
 
-    private void dispatchStatement(StringBuilder buffer, java.util.function.Consumer<String> consumer) {
-        String sql = buffer.toString().trim();
-        buffer.setLength(0);
+    private void dispatchStatement(String buffer, java.util.function.Consumer<String> consumer) {
+        String sql = buffer.trim();
         if (sql.isEmpty()) {
             return;
         }

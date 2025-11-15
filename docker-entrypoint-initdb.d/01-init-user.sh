@@ -12,8 +12,13 @@ if [[ "$DB_PASSWORD" == *'"'* ]]; then
   exit 1
 fi
 
-# Sanitize password to prevent breaking the quoted SQL literal
-# Duplicate double quotes so Oracle can safely parse the literal
+# Reject DB passwords containing single quotes
+if [[ "$DB_PASSWORD" == *"'"* ]]; then
+  echo "ERROR: Database password cannot contain single quote characters"
+  exit 1
+fi
+
+# Password is used as-is; validation above ensures no problematic characters
 ESCAPED_PASSWORD=${DB_PASSWORD}
 
 # Wait for Oracle to be fully ready

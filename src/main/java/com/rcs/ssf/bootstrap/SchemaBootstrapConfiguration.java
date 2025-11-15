@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class SchemaBootstrapConfiguration {
 
     @Bean
-    @ConditionalOnProperty(prefix = "schema.bootstrap", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "schema.bootstrap", name = "enabled", havingValue = "true", matchIfMissing = false)
     OracleSchemaBootstrapInitializer oracleSchemaBootstrapInitializer(DataSource dataSource,
             SchemaBootstrapProperties properties) {
         return new OracleSchemaBootstrapInitializer(dataSource, properties);
